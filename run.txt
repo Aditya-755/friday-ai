@@ -1,0 +1,1 @@
+python friday_whisper.py

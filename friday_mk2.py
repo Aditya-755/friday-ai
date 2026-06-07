@@ -12,6 +12,7 @@ import time
 import random
 import pyaudio
 import webrtcvad
+import io
 import audioop
 import wave
 from datetime import datetime
@@ -42,31 +43,33 @@ async def speak_async(text):
 
     global is_speaking, last_speak_time
 
-    import uuid
-
-    output_file = f"temp_{uuid.uuid4().hex}.wav"
-
     try:
 
         is_speaking = True
 
-        # Generate Piper voice
-        with wave.open(output_file, "wb") as wav_file:
+        print("FRIDAY:", text)
+
+        # Generate audio directly into RAM
+        wav_io = io.BytesIO()
+
+        with wave.open(wav_io, "wb") as wav_file:
 
             piper_voice.synthesize_wav(
                 text,
                 wav_file
             )
 
-        print("FRIDAY:", text)
+        wav_io.seek(0)
 
-        # Load and play audio
-        pygame.mixer.music.load(output_file)
+        pygame.mixer.music.load(
+            wav_io,
+            "wav"
+        )
+
         pygame.mixer.music.play()
 
-        # Wait until playback finishes
         while pygame.mixer.music.get_busy():
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
         last_speak_time = time.time()
 
@@ -76,19 +79,7 @@ async def speak_async(text):
 
     finally:
 
-      is_speaking = False
-
-      pygame.mixer.music.unload()
-
-      await asyncio.sleep(0.2)
- 
-      try:
-          if os.path.exists(output_file):
-            os.remove(output_file)
-
-      except Exception as e:
-
-        print("Cleanup delayed:", e)
+        is_speaking = False
 
     
 def speak(text):
@@ -184,7 +175,6 @@ model = WhisperModel(
     download_root=r"D:\whisper_models"
 )
 
-# ================= LISTEN =================
 # ================= LISTEN =================
 def listen():
     global last_speak_time, is_speaking
@@ -295,6 +285,10 @@ def listen():
                     stream.stop_stream()
                     stream.close()
                     p.terminate()
+                    try:
+                        os.remove("speech.wav")
+                    except:
+                        pass
 
                     return text
 # ================= INTENT CLASSIFIER =================
