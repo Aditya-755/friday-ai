@@ -98,7 +98,7 @@ def ask_ai(prompt):
         response = requests.post(
             "http://localhost:11434/api/generate",
             json={
-                "model": "mistral:7b-instruct-q4_0",
+                "model": "llama3:8b-instruct-q4_K_M",
                 "prompt": f"""You are FRIDAY, a smart and friendly AI assistant.
 
  Personality:
