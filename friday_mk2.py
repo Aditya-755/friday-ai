@@ -403,8 +403,11 @@ while True:
         time.sleep(0.3)
         continue
 
+    start = time.time()
+
     raw_intent = classify_intent(command)
 
+    print(f"Intent time: {time.time() - start:.2f} sec")
     print("Detected intent:", raw_intent)
 
     intent = "general"
@@ -455,6 +458,11 @@ while True:
     # GENERAL AI RESPONSE
     else:
 
-        response = ask_ai(command)
 
-        speak(response)
+     start = time.time()
+
+     response = ask_ai(command)
+
+     print(f"AI time: {time.time() - start:.2f} sec")
+
+     speak(response)
