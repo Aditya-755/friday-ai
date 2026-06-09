@@ -1,4 +1,5 @@
 import os
+import queue
 import threading
 import sounddevice as sd
 import numpy as np
@@ -13,6 +14,7 @@ import random
 import pyaudio
 import webrtcvad
 import io
+import json
 import audioop
 import wave
 from datetime import datetime
@@ -25,19 +27,17 @@ speak_lock = threading.Lock()
 is_speaking = False
 last_speak_time = 0
 COOLDOWN = 1.2  # tuned balance
+speech_queue=queue.Queue()
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 pygame.mixer.init()
-
 piper_voice=PiperVoice.load(
     r"D:\FRIDAY\FRIDAY main\VOICES\en_US-hfc_female-medium.onnx"
 )
-
 # ================= TEXT CLEAN =================
 def clean_text(text):
     return re.sub(r'[^a-zA-Z0-9 .,?!]', '', text)
-
 # ======== using piper TTS here======
 async def speak_async(text):
 
@@ -47,7 +47,7 @@ async def speak_async(text):
 
         is_speaking = True
 
-        print("FRIDAY:", text)
+        #print("FRIDAY:", text)
 
         # Generate audio directly into RAM
         wav_io = io.BytesIO()
@@ -88,6 +88,24 @@ def speak(text):
 conversation_history = []
 
 # ================= AI =================
+def tts_worker():
+
+    while True:
+
+        text = speech_queue.get()
+
+        if text is None:
+            break
+
+        speak(text)
+
+        speech_queue.task_done()
+tts_thread = threading.Thread(
+    target=tts_worker,
+    daemon=True
+)
+
+tts_thread.start()
 def ask_ai(prompt):
     global conversation_history
 
@@ -131,17 +149,39 @@ Current user message:
 
 Respond naturally as FRIDAY:
 """,
-                "stream": False,
+                "stream": True,
                 "options": {
                     "num_predict": 150
                 }
             },
-            timeout=30
+            timeout=30,
+            stream=True
         )
 
-        data = response.json()
-
-        reply = data.get("response", "").strip()
+        reply=""
+        sentence_buffer=""
+        print("FRIDAY:",end="",flush=True)
+        for line in response.iter_lines():
+            if not line:
+                continue
+            chunk=json.loads(line.decode("utf-8"))
+            token=chunk.get("response","")
+            print(token,end="",flush=True)
+            reply+=token
+            sentence_buffer+=token
+            if any(p in sentence_buffer for p in [".","!","?"]):
+                sentence=sentence_buffer.strip()
+                print(
+                    f"\n[SENTENCE READY] {sentence}"
+                )
+                speech_queue.put(sentence)
+                sentence_buffer=""
+        if sentence_buffer.strip():
+            speech_queue.put(
+                sentence_buffer.strip()
+            )
+        print()
+        reply=reply.strip()
 
         # remove repeated FRIDAY labels
         reply = re.sub(
@@ -180,7 +220,7 @@ def listen():
     global last_speak_time, is_speaking
 
     # block while speaking
-    if is_speaking:
+    if is_speaking or not speech_queue.empty():
         time.sleep(0.1)
         return ""
 
