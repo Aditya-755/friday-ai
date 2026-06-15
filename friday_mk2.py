@@ -46,6 +46,7 @@ async def speak_async(text):
     try:
 
         is_speaking = True
+        #print("TTS START")
 
         #print("FRIDAY:", text)
 
@@ -60,12 +61,12 @@ async def speak_async(text):
             )
 
         wav_io.seek(0)
-
+        pygame.mixer.music.stop()
         pygame.mixer.music.load(
             wav_io,
             "wav"
         )
-
+        
         pygame.mixer.music.play()
 
         while pygame.mixer.music.get_busy():
@@ -80,6 +81,7 @@ async def speak_async(text):
     finally:
 
         is_speaking = False
+       # print("TTS END")
 
     
 def speak(text):
@@ -96,10 +98,12 @@ def tts_worker():
 
         if text is None:
             break
-
+       # print("WORKER:",text[:80])
         speak(text)
+        
 
         speech_queue.task_done()
+        time.sleep(0.3)
 tts_thread = threading.Thread(
     target=tts_worker,
     daemon=True
@@ -171,9 +175,9 @@ Respond naturally as FRIDAY:
             sentence_buffer+=token
             if any(p in sentence_buffer for p in [".","!","?"]):
                 sentence=sentence_buffer.strip()
-                print(
-                    f"\n[SENTENCE READY] {sentence}"
-                )
+               # print(
+                  #  f"\n[SENTENCE READY] {sentence}"
+                #)
                 speech_queue.put(sentence)
                 sentence_buffer=""
         if sentence_buffer.strip():
@@ -418,7 +422,7 @@ Intent:"""
                     "num_predict": 5  # only needs one word
                 }
             },
-            timeout=10
+            timeout=20
         )
 
         data = response.json()
@@ -505,4 +509,4 @@ while True:
 
      print(f"AI time: {time.time() - start:.2f} sec")
 
-     speak(response)
+     #speak(response)
