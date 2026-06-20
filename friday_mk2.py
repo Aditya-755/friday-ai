@@ -88,6 +88,7 @@ def speak(text):
     asyncio.run(speak_async(text))            
 # ================= MEMORY =================
 conversation_history = []
+SESSION_START_TIME=datetime.now()
 
 # ================= AI =================
 def tts_worker():
@@ -110,11 +111,36 @@ tts_thread = threading.Thread(
 )
 
 tts_thread.start()
+def get_temporal_context():
+
+    now = datetime.now()
+
+    current_time = now.strftime("%I:%M %p")
+
+    current_date = now.strftime("%B %d, %Y")
+
+    elapsed_delta = now - SESSION_START_TIME
+
+    elapsed_minutes = int(
+        elapsed_delta.total_seconds() // 60
+    )
+
+    temporal_prompt = (
+        f"Current Date: {current_date}\n"
+        f"Current Time: {current_time}\n"
+        f"Session Duration: {elapsed_minutes} minutes.\n"
+    )
+
+    return temporal_prompt
+
+
 def ask_ai(prompt):
     global conversation_history
 
     conversation_history.append(f"User: {prompt}")
-    history_text = "\n".join(conversation_history[-4:])
+    history_text = "\n".join(conversation_history[-12:])
+    time_context=get_temporal_context()
+    print(time_context)
 
     try:
         response = requests.post(
@@ -145,6 +171,8 @@ Response Rules:
 - For casual chat, match the user's energy
 - Never end with "Is there anything else I can help you with?"
 
+Conversation history:
+{time_context}
 Conversation history:
 {history_text}
 
