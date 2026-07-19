@@ -13,6 +13,7 @@ import time
 import random
 import pyaudio
 import webrtcvad
+import keyboard
 import io
 import json
 import audioop
@@ -26,6 +27,7 @@ import pygame
 speak_lock = threading.Lock()
 is_speaking = False
 last_speak_time = 0
+interrupt_requested=False
 COOLDOWN = 1.2  # tuned balance
 speech_queue=queue.Queue()
 
@@ -85,10 +87,24 @@ async def speak_async(text):
 
     
 def speak(text):
-    asyncio.run(speak_async(text))            
+    asyncio.run(speak_async(text)) 
+def interrupt_friday():
+    global interrupt_requested
+
+    interrupt_requested = True
+
+    pygame.mixer.music.stop()
+
+    while not speech_queue.empty():
+        try:
+            speech_queue.get_nowait()
+            speech_queue.task_done()
+        except queue.Empty:
+            break           
 # ================= MEMORY =================
 conversation_history = []
 SESSION_START_TIME=datetime.now()
+
 
 # ================= AI =================
 def tts_worker():
@@ -96,6 +112,10 @@ def tts_worker():
     while True:
 
         text = speech_queue.get()
+        global interrupt_requested
+        if interrupt_requested:
+            interrupt_requested=False
+            continue
 
         if text is None:
             break
@@ -114,6 +134,7 @@ tts_thread.start()
 def get_temporal_context():
 
     now = datetime.now()
+    
 
     current_time = now.strftime("%I:%M %p")
 
@@ -140,7 +161,7 @@ def ask_ai(prompt):
     conversation_history.append(f"User: {prompt}")
     history_text = "\n".join(conversation_history[-12:])
     time_context=get_temporal_context()
-    print(time_context)
+    
 
     try:
         response = requests.post(
@@ -465,10 +486,13 @@ Intent:"""
         print("Intent Error:", e)
         return "general"
 
-
+def interrupt_key(event):
+    if is_speaking:
+        print("INTERRUPTED")
+        interrupt_friday()
+keyboard.on_press_key("left ctrl", interrupt_key)
 #  MAIN LOOP 
 while True:
-
     command = listen()
 
     if not command:
