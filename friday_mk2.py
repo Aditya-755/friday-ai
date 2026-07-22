@@ -95,14 +95,7 @@ def interrupt_friday():
 
     interrupt_requested = True
 
-    pygame.mixer.music.stop()
-
-    while not speech_queue.empty():
-        try:
-            speech_queue.get_nowait()
-            speech_queue.task_done()
-        except queue.Empty:
-            break           
+    pygame.mixer.music.stop()        
 # ================= MEMORY =================
 conversation_history = []
 SESSION_START_TIME=datetime.now()
@@ -110,11 +103,13 @@ SESSION_START_TIME=datetime.now()
 
 # ================= AI =================
 def tts_worker():
+    global interrupt_requested
 
     while True:
-
-        text = speech_queue.get()
-        global interrupt_requested
+        try:
+            text=speech_queue.get(timeout=0.1)
+        except queue.Empty:
+            continue
         if interrupt_requested:
             interrupt_requested=False
             continue
@@ -123,7 +118,16 @@ def tts_worker():
             break
        # print("WORKER:",text[:80])
         speak(text)
-        
+
+        if interrupt_requested:
+
+          while not speech_queue.empty():
+            try:
+              speech_queue.get_nowait()
+              speech_queue.task_done()
+            except queue.Empty:
+             break
+          interrupt_requested = False
 
         speech_queue.task_done()
         time.sleep(0.3)
