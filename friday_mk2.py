@@ -28,8 +28,10 @@ speak_lock = threading.Lock()
 is_speaking = False
 last_speak_time = 0
 interrupt_requested=False
+assistant_busy=False
 COOLDOWN = 1.2  # tuned balance
 speech_queue=queue.Queue()
+
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
@@ -157,8 +159,9 @@ def get_temporal_context():
 
 def ask_ai(prompt):
 
-    global conversation_history, interrupt_requested
+    global conversation_history, interrupt_requested,assistant_busy
     interrupt_requested=False
+    assistant_busy=True
 
     conversation_history.append(f"User: {prompt}")
     history_text = "\n".join(conversation_history[-12:])
@@ -217,12 +220,12 @@ Respond naturally as FRIDAY:
         sentence_buffer=""
         print("FRIDAY:",end="",flush=True)
         for line in response.iter_lines():
-            if interrupt_requested:
-             print("\nAI STREAM INTERRUPTED")
-             interrupt_requested = False
-             break
             if not line:
                 continue
+            if interrupt_requested:
+                print("\nAI STREAM INTERRUPTED")
+                interrupt_requested=False
+                break
             chunk=json.loads(line.decode("utf-8"))
             token=chunk.get("response","")
             print(token,end="",flush=True)
@@ -263,6 +266,7 @@ Respond naturally as FRIDAY:
         reply = "AI is not responding properly."
 
     conversation_history.append(f"FRIDAY: {reply}")
+    assistant_busy=False
 
     return reply
 
@@ -493,7 +497,9 @@ Intent:"""
         return "general"
 
 def interrupt_key(event):
-    if is_speaking:
+    global assistant_busy
+
+    if assistant_busy:
         print("INTERRUPTED")
         interrupt_friday()
 keyboard.on_press_key("left ctrl", interrupt_key)
