@@ -156,7 +156,9 @@ def get_temporal_context():
 
 
 def ask_ai(prompt):
-    global conversation_history
+
+    global conversation_history, interrupt_requested
+    interrupt_requested=False
 
     conversation_history.append(f"User: {prompt}")
     history_text = "\n".join(conversation_history[-12:])
@@ -215,6 +217,10 @@ Respond naturally as FRIDAY:
         sentence_buffer=""
         print("FRIDAY:",end="",flush=True)
         for line in response.iter_lines():
+            if interrupt_requested:
+             print("\nAI STREAM INTERRUPTED")
+             interrupt_requested = False
+             break
             if not line:
                 continue
             chunk=json.loads(line.decode("utf-8"))
