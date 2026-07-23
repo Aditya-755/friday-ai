@@ -28,6 +28,7 @@ speak_lock = threading.Lock()
 is_speaking = False
 last_speak_time = 0
 interrupt_requested=False
+cancel_response=threading.Event()
 assistant_busy=False
 COOLDOWN = 1.2  # tuned balance
 speech_queue=queue.Queue()
@@ -74,6 +75,11 @@ async def speak_async(text):
         pygame.mixer.music.play()
 
         while pygame.mixer.music.get_busy():
+
+            if cancel_response.is_set():
+              pygame.mixer.music.stop()
+              break
+
             await asyncio.sleep(0.05)
 
         last_speak_time = time.time()
@@ -94,6 +100,7 @@ def interrupt_friday():
     global interrupt_requested
 
     interrupt_requested = True
+    cancel_response.set()
 
     pygame.mixer.music.stop()        
 # ================= MEMORY =================
@@ -110,8 +117,7 @@ def tts_worker():
             text=speech_queue.get(timeout=0.1)
         except queue.Empty:
             continue
-        if interrupt_requested:
-            interrupt_requested=False
+        if cancel_response.is_set():
             continue
 
         if text is None:
@@ -119,7 +125,7 @@ def tts_worker():
        # print("WORKER:",text[:80])
         speak(text)
 
-        if interrupt_requested:
+        if cancel_response.is_set():
 
           while not speech_queue.empty():
             try:
@@ -127,8 +133,6 @@ def tts_worker():
               speech_queue.task_done()
             except queue.Empty:
              break
-          interrupt_requested = False
-
         speech_queue.task_done()
         time.sleep(0.3)
 tts_thread = threading.Thread(
@@ -164,9 +168,8 @@ def get_temporal_context():
 def ask_ai(prompt):
 
     global conversation_history
-    global interrupt_requested
     global assistant_busy
-    interrupt_requested=False
+    cancel_response.clear()
     assistant_busy=True
     
 
@@ -229,10 +232,9 @@ Respond naturally as FRIDAY:
         for line in response.iter_lines():
             if not line:
                 continue
-            if interrupt_requested:
-                print("\nAI STREAM INTERRUPTED")
-                interrupt_requested=False
-                break
+            if cancel_response.is_set():
+              print("\nAI STREAM INTERRUPTED")
+              break
             chunk=json.loads(line.decode("utf-8"))
             token=chunk.get("response","")
             print(token,end="",flush=True)
