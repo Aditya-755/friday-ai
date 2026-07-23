@@ -29,6 +29,7 @@ is_speaking = False
 last_speak_time = 0
 interrupt_requested=False
 assistant_busy=False
+response_id=0
 COOLDOWN = 1.2  # tuned balance
 speech_queue=queue.Queue()
 
@@ -163,9 +164,14 @@ def get_temporal_context():
 
 def ask_ai(prompt):
 
-    global conversation_history, interrupt_requested,assistant_busy
+    global conversation_history
+    global interrupt_requested
+    global assistant_busy
+    global response_id
     interrupt_requested=False
     assistant_busy=True
+    response_id+=1
+    current_response=response_id
 
     conversation_history.append(f"User: {prompt}")
     history_text = "\n".join(conversation_history[-12:])
