@@ -164,7 +164,32 @@ def get_temporal_context():
     )
 
     return temporal_prompt
+def update_conversation_state(user_message):
+    global conversation_state
 
+    msg = user_message.lower()
+
+    if "story" in msg:
+        conversation_state = "storytelling"
+
+    elif any(word in msg for word in [
+        "code", "python", "java", "bug", "error",
+        "program", "function", "loop"
+    ]):
+        conversation_state = "coding"
+
+    elif any(word in msg for word in [
+        "plan", "schedule", "roadmap", "career"
+    ]):
+        conversation_state = "planning"
+
+    elif any(word in msg for word in [
+        "hello", "hi", "hey"
+    ]):
+        conversation_state = "greeting"
+
+    else:
+        pass
 
 def ask_ai(prompt):
 
@@ -209,7 +234,8 @@ Response Rules:
 - For casual chat, match the user's energy
 - Never end with "Is there anything else I can help you with?"
 
-Conversation history:
+conversation state:
+{conversation_state}
 {time_context}
 Conversation history:
 {history_text}
@@ -521,6 +547,8 @@ while True:
     if not command:
         time.sleep(0.3)
         continue
+    update_conversation_state(command)
+    print("Conversation State:", conversation_state)
 
     start = time.time()
 
