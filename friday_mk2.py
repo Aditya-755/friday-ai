@@ -105,6 +105,7 @@ def interrupt_friday():
     pygame.mixer.music.stop()        
 # ================= MEMORY =================
 conversation_history = []
+conversation_state="idle"
 SESSION_START_TIME=datetime.now()
 
 
@@ -168,6 +169,7 @@ def get_temporal_context():
 def ask_ai(prompt):
 
     global conversation_history
+    global conversation_state
     global assistant_busy
     cancel_response.clear()
     assistant_busy=True
