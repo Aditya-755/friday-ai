@@ -515,21 +515,29 @@ def interrupt_key(event):
         print("INTERRUPTED")
         interrupt_friday()
 keyboard.on_press_key("left ctrl", interrupt_key)
+
+#CLASSIFYER FOR conversation state
 def classify_conversation_state(command, current_state, intent):
 
     if intent in ["time", "date", "exit"]:
         return "idle"
+    recent_history = "\n".join(conversation_history[-4:])
 
-    state_prompt = f"""You are a conversation state classifier for FRIDAY.
+    state_prompt = f"""You are the Conversation State Classifier for FRIDAY.
 
-Current conversation state:
+Your job is NOT to answer the user.
+Your ONLY job is to determine the current conversation state.
+
+Current Conversation State:
 {current_state}
 
-User message:
+Recent Conversation:
+{recent_history}
+
+Latest User Message:
 "{command}"
 
-Choose exactly ONE of these conversation states:
-
+Possible States:
 - idle
 - casual_chat
 - storytelling
@@ -537,14 +545,69 @@ Choose exactly ONE of these conversation states:
 - planning
 - question_answering
 
-Rules:
-- Keep the current state if the user is continuing the same topic.
-- Change the state only if the user clearly starts a different type of conversation.
-- Story continuations like "continue", "what happened next", "make it longer" remain storytelling.
-- Follow-up coding questions remain coding.
-- Study and factual questions belong to question_answering.
-- Greetings belong to casual_chat.
-- Reply with ONLY one state name.
+Instructions:
+
+1. If the latest message naturally continues the current conversation, KEEP the current state.
+
+2. Only change the state if the user clearly starts a new topic or task.
+
+3. Do not rely only on keywords. Consider the meaning of the message.
+
+Examples:
+
+Current State: storytelling
+User: Continue.
+Answer: storytelling
+
+Current State: storytelling
+User: Make the ending sad.
+Answer: storytelling
+
+Current State: storytelling
+User: Add a dragon.
+Answer: storytelling
+
+Current State: storytelling
+User: Tell me another story.
+Answer: storytelling
+
+Current State: coding
+User: Explain this error.
+Answer: coding
+
+Current State: coding
+User: Fix this function.
+Answer: coding
+
+Current State: planning
+User: Give me a roadmap.
+Answer: planning
+
+Current State: planning
+User: What should I do next?
+Answer: planning
+
+Current State: casual_chat
+User: Hello.
+Answer: casual_chat
+
+Current State: idle
+User: Tell me a story.
+Answer: storytelling
+
+Current State: idle
+User: Help me debug my Python code.
+Answer: coding
+
+Current State: idle
+User: Plan my career.
+Answer: planning
+
+Current State: idle
+User: What is machine learning?
+Answer: question_answering
+
+Reply with ONLY one state name.
 
 State:
 """
