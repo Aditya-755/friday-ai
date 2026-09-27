@@ -164,32 +164,32 @@ def get_temporal_context():
     )
 
     return temporal_prompt
-def update_conversation_state(user_message):
-    global conversation_state
+# def update_conversation_state(user_message):
+#     global conversation_state
 
-    msg = user_message.lower()
+#     msg = user_message.lower()
 
-    if "story" in msg:
-        conversation_state = "storytelling"
+#     if "story" in msg:
+#         conversation_state = "storytelling"
 
-    elif any(word in msg for word in [
-        "code", "python", "java", "bug", "error",
-        "program", "function", "loop"
-    ]):
-        conversation_state = "coding"
+#     elif any(word in msg for word in [
+#         "code", "python", "java", "bug", "error",
+#         "program", "function", "loop"
+#     ]):
+#         conversation_state = "coding"
 
-    elif any(word in msg for word in [
-        "plan", "schedule", "roadmap", "career"
-    ]):
-        conversation_state = "planning"
+#     elif any(word in msg for word in [
+#         "plan", "schedule", "roadmap", "career"
+#     ]):
+#         conversation_state = "planning"
 
-    elif any(word in msg for word in [
-        "hello", "hi", "hey"
-    ]):
-        conversation_state = "greeting"
+#     elif any(word in msg for word in [
+#         "hello", "hi", "hey"
+#     ]):
+#         conversation_state = "greeting"
 
-    else:
-        pass
+#     else:
+#         pass
 
 def ask_ai(prompt):
 
@@ -540,7 +540,10 @@ def interrupt_key(event):
         print("INTERRUPTED")
         interrupt_friday()
 keyboard.on_press_key("left ctrl", interrupt_key)
-#  MAIN LOOP 
+def classify_conversation_state(command, current_state):
+    pass
+
+
 while True:
     command = listen()
 
