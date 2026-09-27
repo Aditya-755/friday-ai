@@ -164,32 +164,7 @@ def get_temporal_context():
     )
 
     return temporal_prompt
-# def update_conversation_state(user_message):
-#     global conversation_state
 
-#     msg = user_message.lower()
-
-#     if "story" in msg:
-#         conversation_state = "storytelling"
-
-#     elif any(word in msg for word in [
-#         "code", "python", "java", "bug", "error",
-#         "program", "function", "loop"
-#     ]):
-#         conversation_state = "coding"
-
-#     elif any(word in msg for word in [
-#         "plan", "schedule", "roadmap", "career"
-#     ]):
-#         conversation_state = "planning"
-
-#     elif any(word in msg for word in [
-#         "hello", "hi", "hey"
-#     ]):
-#         conversation_state = "greeting"
-
-#     else:
-#         pass
 
 def ask_ai(prompt):
 
@@ -540,18 +515,81 @@ def interrupt_key(event):
         print("INTERRUPTED")
         interrupt_friday()
 keyboard.on_press_key("left ctrl", interrupt_key)
-def classify_conversation_state(command, current_state):
-    pass
+def classify_conversation_state(command, current_state, intent):
 
+    if intent in ["time", "date", "exit"]:
+        return "idle"
 
+    state_prompt = f"""You are a conversation state classifier for FRIDAY.
+
+Current conversation state:
+{current_state}
+
+User message:
+"{command}"
+
+Choose exactly ONE of these conversation states:
+
+- idle
+- casual_chat
+- storytelling
+- coding
+- planning
+- question_answering
+
+Rules:
+- Keep the current state if the user is continuing the same topic.
+- Change the state only if the user clearly starts a different type of conversation.
+- Story continuations like "continue", "what happened next", "make it longer" remain storytelling.
+- Follow-up coding questions remain coding.
+- Study and factual questions belong to question_answering.
+- Greetings belong to casual_chat.
+- Reply with ONLY one state name.
+
+State:
+"""
+
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "llama3:8b-instruct-q4_K_M",
+                "prompt": state_prompt,
+                "stream": False,
+                "options": {
+                    "num_predict": 5
+                }
+            },
+            timeout=20
+        )
+
+        data = response.json()
+        raw = data.get("response", "").strip().lower().split()[0]
+
+        valid_states = (
+            "idle",
+            "casual_chat",
+            "storytelling",
+            "coding",
+            "planning",
+            "question_answering"
+        )
+
+        for state in valid_states:
+            if state == raw:
+                return state
+
+        return current_state
+
+    except Exception as e:
+        print("State Classifier Error:", e)
+        return current_state
 while True:
     command = listen()
 
     if not command:
         time.sleep(0.3)
         continue
-    update_conversation_state(command)
-    print("Conversation State:", conversation_state)
 
     start = time.time()
 
@@ -566,7 +604,13 @@ while True:
         if i == raw_intent:
             intent = i
             break
+    conversation_state = classify_conversation_state(
+      command,
+      conversation_state,
+      intent
+)
 
+    print("Conversation State:", conversation_state)
     # EXIT
     if intent == "exit":
 
