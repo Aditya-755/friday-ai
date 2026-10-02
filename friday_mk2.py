@@ -119,6 +119,7 @@ def tts_worker():
         except queue.Empty:
             continue
         if cancel_response.is_set():
+            speech_queue.task_done()
             continue
 
         if text is None:
@@ -500,7 +501,8 @@ Intent:"""
         raw = data.get("response", "").strip().lower().split()[0]
 
         for intent in ("exit", "greeting", "time", "date"):
-            if intent in raw:
+              if raw == intent:
+                
                 return intent
         return "general"
 
@@ -653,6 +655,8 @@ while True:
     if not command:
         time.sleep(0.3)
         continue
+    cancel_response.clear()
+    interrupt_requested = False
 
     start = time.time()
 
