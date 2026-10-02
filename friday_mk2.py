@@ -212,6 +212,25 @@ Response Rules:
 
 conversation state:
 {conversation_state}
+Use the conversation state to guide your response:
+
+- idle:
+  Treat the user's message as a new request. Do not assume an ongoing task.
+
+- casual_chat:
+  Respond naturally and conversationally. Match the user's tone.
+
+- storytelling:
+  Continue the current story or modify it according to the user's request. Maintain characters, events, and context from the conversation.
+
+- coding:
+  Treat the conversation as a coding/debugging session. Use previous code and errors from the conversation when relevant.
+
+- planning:
+  Continue the existing plan or help develop the next steps. Keep previous goals and decisions in context.
+
+- question_answering:
+  Give a direct and accurate explanation. Use the previous conversation when the question depends on earlier context.
 {time_context}
 Conversation history:
 {history_text}
