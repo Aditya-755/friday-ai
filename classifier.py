@@ -120,6 +120,8 @@ CONTINUATION_PHRASES = {
 
 def classify_state(text, previous_state):
     text_clean = text.strip().lower()
+    if "help me plan" in text_clean or "plan my carrer" in text_clean:
+        return "planning",1.0
 
     if text_clean in CONTINUATION_PHRASES:
         return previous_state, 1.0
@@ -141,7 +143,7 @@ def classify_both(text, previous_state):
     intent, intent_score, _ = classify(text, INTENT_BANK)
 
     # Certain intents should always leave FRIDAY in idle state
-    if intent in {"exit", "greeting", "time", "date"}:
+    if intent in {"exit", "time", "date"}:
         state = "idle"
         state_score = 1.0
 
