@@ -3,7 +3,7 @@ import queue
 import threading
 import sounddevice as sd
 import numpy as np
-from faster_whisper import WhisperModel
+from faster_whisper import WhisperModel 
 import asyncio
 import edge_tts
 import uuid
