@@ -20,6 +20,7 @@ import audioop
 import wave
 from datetime import datetime
 from piper import  PiperVoice
+from classifier import classify_both
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 
@@ -427,107 +428,7 @@ def listen():
 
                     return text
 # ================= INTENT CLASSIFIER =================
-def classify_intent(command):
-    intent_prompt = f"""You are an intent classifier for a voice assistant named FRIDAY.
 
-Classify this message into exactly one of these intents:
-- exit
-- greeting
-- time
-- date
-- general
-
-Rules:
-- 'exit' ONLY if the user is explicitly telling the assistant to stop/quit/shutdown/goodbye
-- 'greeting' ONLY if the user is directly greeting the assistant
-- 'time' ONLY if the user is asking for the current clock time (nothing else)
-- 'date' ONLY if the user is asking for today's calendar date (nothing else)
-- 'general' for ANY question, fact, news, knowledge, conversation, or ambiguous case
-- When in doubt, always choose 'general'
-- Words like "current", "today", "now" in factual questions = general, NOT time/date
-
-Exit examples:
-"exit" → exit
-"stop" → exit
-"quit" → exit
-"bye friday" → exit
-"goodbye friday" → exit
-"friday shut down" → exit
-"you should exit right now" → exit
-"friday stop yourself" → exit
-"i think you should shut down" → exit
-"can you please turn off" → exit
-"stop talking for a second" → exit
-"I want to exit the library" → general
-"this thing is exciting" → general
-"i need to stop by the grocery store" → general
-"don't stop explaining" → general
-"my friend had to say bye" → general
-
-Greeting examples:
-"hello" → greeting
-"hi friday" → greeting
-"hey how are you" → greeting
-"good morning friday" → greeting
-"what's up" → greeting
-"I said hi to him" → general
-"she said hello to me" → general
-
-Time examples:
-"what time is it" → time
-"what's the time" → time
-"tell me the time" → time
-"what is the current time" → time
-"i don't have time for this" → general
-"how long does it take to travel to Mars" → general
-
-Date examples:
-"what's today's date" → date
-"what day is it today" → date
-"tell me today's date" → date
-"what is the date today" → date
-"i went on a date yesterday" → general
-"what is the release date of that movie" → general
-
-General examples:
-"who is the current prime minister" → general
-"who is the current president" → general
-"what is AI" → general
-"tell me about space" → general
-"what is the capital of France" → general
-"how does a black hole form" → general
-"latest news in tech" → general
-
-Respond with ONLY one word.
-Message: "{command}"
-Intent:"""
-
-    try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "llama3:8b-instruct-q4_K_M",
-                "prompt": intent_prompt,
-                "stream": False,
-                "options": {
-                    "num_predict": 5  # only needs one word
-                }
-            },
-            timeout=20
-        )
-
-        data = response.json()
-        raw = data.get("response", "").strip().lower().split()[0]
-
-        for intent in ("exit", "greeting", "time", "date"):
-              if raw == intent:
-                
-                return intent
-        return "general"
-
-    except Exception as e:
-        print("Intent Error:", e)
-        return "general"
 
 def interrupt_key(event):
     global assistant_busy
@@ -538,136 +439,7 @@ def interrupt_key(event):
 keyboard.on_press_key("left ctrl", interrupt_key)
 
 #CLASSIFYER FOR conversation state
-def classify_conversation_state(command, current_state, intent):
 
-    if intent in ["time", "date", "exit"]:
-        return "idle"
-    recent_history = "\n".join(conversation_history[-4:])
-
-    state_prompt = f"""You are the Conversation State Classifier for FRIDAY.
-
-Your job is NOT to answer the user.
-Your ONLY job is to determine the current conversation state.
-
-Current Conversation State:
-{current_state}
-
-Recent Conversation:
-{recent_history}
-
-Latest User Message:
-"{command}"
-
-Possible States:
-- idle
-- casual_chat
-- storytelling
-- coding
-- planning
-- question_answering
-
-Instructions:
-
-1. If the latest message naturally continues the current conversation, KEEP the current state.
-
-2. Only change the state if the user clearly starts a new topic or task.
-
-3. Do not rely only on keywords. Consider the meaning of the message.
-
-Examples:
-
-Current State: storytelling
-User: Continue.
-Answer: storytelling
-
-Current State: storytelling
-User: Make the ending sad.
-Answer: storytelling
-
-Current State: storytelling
-User: Add a dragon.
-Answer: storytelling
-
-Current State: storytelling
-User: Tell me another story.
-Answer: storytelling
-
-Current State: coding
-User: Explain this error.
-Answer: coding
-
-Current State: coding
-User: Fix this function.
-Answer: coding
-
-Current State: planning
-User: Give me a roadmap.
-Answer: planning
-
-Current State: planning
-User: What should I do next?
-Answer: planning
-
-Current State: casual_chat
-User: Hello.
-Answer: casual_chat
-
-Current State: idle
-User: Tell me a story.
-Answer: storytelling
-
-Current State: idle
-User: Help me debug my Python code.
-Answer: coding
-
-Current State: idle
-User: Plan my career.
-Answer: planning
-
-Current State: idle
-User: What is machine learning?
-Answer: question_answering
-
-Reply with ONLY one state name.
-
-State:
-"""
-
-    try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "llama3:8b-instruct-q4_K_M",
-                "prompt": state_prompt,
-                "stream": False,
-                "options": {
-                    "num_predict": 5
-                }
-            },
-            timeout=20
-        )
-
-        data = response.json()
-        raw = data.get("response", "").strip().lower().split()[0]
-
-        valid_states = (
-            "idle",
-            "casual_chat",
-            "storytelling",
-            "coding",
-            "planning",
-            "question_answering"
-        )
-
-        for state in valid_states:
-            if state == raw:
-                return state
-
-        return current_state
-
-    except Exception as e:
-        print("State Classifier Error:", e)
-        return current_state
 while True:
     command = listen()
 
@@ -679,24 +451,14 @@ while True:
 
     start = time.time()
 
-    raw_intent = classify_intent(command)
+    intent, intent_conf, conversation_state, state_conf = classify_both(
+        command,
+        conversation_state
+    )
 
-    print(f"Intent time: {time.time() - start:.2f} sec")
-    print("Detected intent:", raw_intent)
-
-    intent = "general"
-
-    for i in ["exit", "greeting", "time", "date"]:
-        if i == raw_intent:
-            intent = i
-            break
-    conversation_state = classify_conversation_state(
-      command,
-      conversation_state,
-      intent
-)
-
-    print("Conversation State:", conversation_state)
+    print(f"Classifier time: {time.time() - start:.3f} sec")
+    print(f"Detected intent: {intent} ({intent_conf})")
+    print(f"Conversation State: {conversation_state} ({state_conf})")
     # EXIT
     if intent == "exit":
 
