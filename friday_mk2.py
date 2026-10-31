@@ -21,7 +21,7 @@ import wave
 from datetime import datetime
 from piper import  PiperVoice
 from classifier import classify_both, is_shutdown_command
-from classifier import classify_both
+
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 
@@ -66,25 +66,27 @@ async def speak_async(text):
                 text,
                 wav_file
             )
+        if cancel_response.is_set():
+            return
 
         wav_io.seek(0)
         pygame.mixer.music.stop()
-        pygame.mixer.music.load(
-            wav_io,
-            "wav"
-        )
-        
+        if cancel_response.is_set():
+            return
+        pygame.mixer.music.load(wav_io,"wav")
+        if cancel_response.is_set():
+            return
         pygame.mixer.music.play()
 
         while pygame.mixer.music.get_busy():
-
             if cancel_response.is_set():
-              pygame.mixer.music.stop()
-              break
-
+                pygame.mixer.music.stop()
+                break
             await asyncio.sleep(0.05)
-
-        last_speak_time = time.time()
+        if cancel_response.is_set():
+            pygame.mixer.music.stop()
+            return
+        last_speak_time=time.time()
 
     except Exception as e:
 
@@ -117,28 +119,30 @@ def tts_worker():
 
     while True:
         try:
-            text=speech_queue.get(timeout=0.1)
+            text = speech_queue.get(timeout=0.1)
         except queue.Empty:
             continue
+
+        if text is None:
+            speech_queue.task_done()
+            break
+
         if cancel_response.is_set():
             speech_queue.task_done()
             continue
 
-        if text is None:
-            break
-       # print("WORKER:",text[:80])
-        speak(text)
+        try:
+            speak(text)
+        finally:
+            speech_queue.task_done()
 
         if cancel_response.is_set():
-
-          while not speech_queue.empty():
-            try:
-              speech_queue.get_nowait()
-              speech_queue.task_done()
-            except queue.Empty:
-             break
-        speech_queue.task_done()
-        time.sleep(0.3)
+            while True:
+                try:
+                    speech_queue.get_nowait()
+                    speech_queue.task_done()
+                except queue.Empty:
+                    break
 tts_thread = threading.Thread(
     target=tts_worker,
     daemon=True
@@ -432,9 +436,8 @@ def listen():
 
 
 def interrupt_key(event):
-    global assistant_busy
 
-    if assistant_busy:
+    if assistant_busy or is_speaking or not speech_queue.empty():
         print("INTERRUPTED")
         interrupt_friday()
 keyboard.on_press_key("left ctrl", interrupt_key)
