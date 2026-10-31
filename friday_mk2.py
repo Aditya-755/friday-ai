@@ -20,6 +20,7 @@ import audioop
 import wave
 from datetime import datetime
 from piper import  PiperVoice
+from classifier import classify_both, is_shutdown_command
 from classifier import classify_both
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
@@ -442,6 +443,10 @@ keyboard.on_press_key("left ctrl", interrupt_key)
 
 while True:
     command = listen()
+    if command and is_shutdown_command(command):
+       print("FRIDAY: Shutting down.")
+       speak("Shutting down. Goodbye!")
+       break
 
     if not command:
         time.sleep(0.3)

@@ -13,6 +13,9 @@ INTENT_EXAMPLES = {
         "see you later", "that's all", "see ya", "later friday",
         "talk to you later", "that will be all", "go to sleep",
         "shut yourself down", "I'm leaving now"
+        "go down", "friday go down",
+        "go offline", "power off",
+        "friday shut down", "shut down friday"
     ],
     "greeting": [
         "hello", "hi", "hey", "hello friday", "hi friday",
