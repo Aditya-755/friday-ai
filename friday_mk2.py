@@ -473,16 +473,18 @@ while True:
     # GREETINGS
     elif intent == "greeting":
 
-        responses = [
-            "Hey, what's up?",
-            "Hi there, what are you up to?",
-            "Hello, how's your day going?",
-            "Hey again, need something?",
-            "Hi, what can I help you with?"
-        ]
+       responses = [
+          "Hey, what's up?",
+          "Hi there, what are you up to?",
+          "Hello, how's your day going?",
+          "Hey again, need something?",
+          "Hi, what can I help you with?"
+       ]
 
-        speak(random.choice(responses))
+       response = random.choice(responses)
 
+       print(f"FRIDAY: {response}")
+       speak(response)
     # TIME
     elif intent == "time":
 
