@@ -129,6 +129,19 @@ def normalize(text):
     """Lowercase, strip punctuation (Whisper adds it), collapse spaces."""
     text = re.sub(r"[^a-z0-9' ]", " ", text.lower())
     return re.sub(r"\s+", " ", text).strip()
+def is_shutdown_command(text):
+    clean = normalize(text)
+
+    shutdown_phrases = {
+        "go down",
+        "friday go down",
+        "go offline",
+        "power off",
+        "shut down friday",
+        "friday shut down",
+    }
+
+    return clean in shutdown_phrases
 
 def score_bank(embedding, bank):
     """Best cosine similarity per label."""
