@@ -499,6 +499,7 @@ while True:
           "Hello Boss! How can I help you?",
           "What's up, Boss? I'm listening.",
           "Hey Boss! Missed me?"
+          " hey boss"
        ]
 
        response = random.choice(responses)
