@@ -8,7 +8,7 @@ INTENT_EXAMPLES = {
     "exit": [
         "exit", "quit", "stop", "bye", "goodbye",
         "bye friday", "goodbye friday", "shut down",
-        "turn yourself off", "close the assistant",
+        "turn yourself off", "close the assisgittant",
         "please stop", "I'm done", "we're done here",
         "see you later", "that's all", "see ya", "later friday",
         "talk to you later", "that will be all", "go to sleep",
