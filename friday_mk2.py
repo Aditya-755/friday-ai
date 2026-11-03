@@ -21,6 +21,11 @@ import wave
 from datetime import datetime
 from piper import  PiperVoice
 from classifier import classify_both, is_shutdown_command
+from memory.database import (
+    initialize_database,
+    start_conversation,
+    save_message
+)
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
@@ -108,9 +113,15 @@ def interrupt_friday():
 
     pygame.mixer.music.stop()        
 # ================= MEMORY =================
+# ================= MEMORY =================
 conversation_history = []
-conversation_state="idle"
-SESSION_START_TIME=datetime.now()
+conversation_state = "idle"
+SESSION_START_TIME = datetime.now()
+
+# Persistent memory database
+initialize_database()
+conversation_id = start_conversation()
+print("[MEMORY] New conversation session started.")
 
 
 # ================= AI =================
@@ -313,6 +324,7 @@ Respond naturally as FRIDAY:
         reply = "AI is not responding properly."
 
     conversation_history.append(f"FRIDAY: {reply}")
+    save_message(conversation_id,"friday",reply)
     assistant_busy=False
 
     return reply
@@ -455,6 +467,8 @@ keyboard.on_press_key("left ctrl", interrupt_key)
 
 while True:
     command = listen()
+    if command:
+        save_message(conversation_id,"user",command)
     if command and is_shutdown_command(command):
        print("FRIDAY: Shutting down.")
        speak("Shutting down. Goodbye!")
@@ -505,20 +519,21 @@ while True:
        response = random.choice(responses)
 
        print(f"FRIDAY: {response}")
+       save_message(conversation_id,"friday",response)
        speak(response)
     # TIME
     elif intent == "time":
-
-        speak(
-            f"The time is {datetime.now().strftime('%I:%M %p')}"
-        )
+          response = f"The time is {datetime.now().strftime('%I:%M %p')}"
+          print(f"FRIDAY: {response}")
+          save_message(conversation_id, "friday", response)
+          speak(response)
 
     # DATE
     elif intent == "date":
-
-        speak(
-            f"Today is {datetime.now().strftime('%B %d, %Y')}"
-        )
+        response = f"Today is {datetime.now().strftime('%B %d, %Y')}"
+        print(f"FRIDAY: {response}")
+        save_message(conversation_id, "friday", response)
+        speak(response)
 
     # GENERAL AI RESPONSE
     else:
